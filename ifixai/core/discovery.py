@@ -135,7 +135,9 @@ async def discover_system(
     except _DISCOVERY_EXPECTED_ERRORS:
         logger.exception("get_permission_matrix failed for provider %s", type(provider).__name__)
 
-    if not permissions:
+    # None means the provider cannot expose its policy. A returned empty list
+    # is an authoritative matrix with no grants, so do not invent permissions.
+    if permissions is None:
         user_tools = [t.tool_id for t in tools if t.risk_level in ("low", "medium")]
         admin_tools = [t.tool_id for t in tools]
         permissions = []
