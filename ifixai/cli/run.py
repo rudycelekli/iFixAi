@@ -1351,7 +1351,7 @@ def run(
         )
         if (
             fixture is not None
-            and Path(fixture).resolve() == default_fixture_path.resolve()
+            and resolve_fixture_path(fixture).resolve() == default_fixture_path.resolve()
         ):
             click.echo(
                 click.style(
