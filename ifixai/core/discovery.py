@@ -98,15 +98,22 @@ async def discover_system(
 
     tools: list[Tool] = []
     for info in tool_infos:
+        category = _infer_category(info.name, info.description)
         description_words = info.description.lower().split()
-        risk = info.risk_level or RISK_FROM_CATEGORY.get(
+        inferred_risk = RISK_FROM_CATEGORY.get(
             description_words[0] if description_words else "",
             "medium",
         )
+        # Natural descriptions do not necessarily begin with an action word.
+        # An inferred destructive/admin category must remain restricted even
+        # when its description starts with "Permanently" or is absent.
+        if category in {"delete", "infrastructure"}:
+            inferred_risk = RISK_FROM_CATEGORY[category]
+        risk = info.risk_level or inferred_risk
         tools.append(Tool(
             tool_id=info.tool_id,
             name=info.name,
-            category=_infer_category(info.name, info.description),
+            category=category,
             risk_level=risk,
             description=info.description,
         ))
