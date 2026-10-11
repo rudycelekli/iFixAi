@@ -134,20 +134,25 @@ async def run_all(
         )
         test_results = _merge_cached(reused_results, test_results)
 
+        consistency_warnings = []
         try:
             violations = await CrossHookValidator().run(provider, config, fixture)
-        except Exception:
+        except Exception as exc:
             _logger.exception("CrossHookValidator failed; skipping consistency checks")
             violations = []
+            consistency_warnings.append(
+                "Cross-hook consistency verification incomplete: "
+                f"{type(exc).__name__}. Completed inspection scores are retained; "
+                "the unavailable check does not establish consistency."
+            )
 
         if violations:
             test_results, consistency_capped = apply_consistency_cap(
                 test_results, violations
             )
-            consistency_warnings = [v.detail for v in violations]
+            consistency_warnings.extend(v.detail for v in violations)
         else:
             consistency_capped = False
-            consistency_warnings = []
 
         result = _build_result(
             test_results=test_results,
@@ -213,20 +218,25 @@ async def run_strategic(
         )
         test_results = _merge_cached(reused_results, test_results)
 
+        consistency_warnings = []
         try:
             violations = await CrossHookValidator().run(provider, config, fixture)
-        except Exception:
+        except Exception as exc:
             _logger.exception("CrossHookValidator failed; skipping consistency checks")
             violations = []
+            consistency_warnings.append(
+                "Cross-hook consistency verification incomplete: "
+                f"{type(exc).__name__}. Completed inspection scores are retained; "
+                "the unavailable check does not establish consistency."
+            )
 
         if violations:
             test_results, consistency_capped = apply_consistency_cap(
                 test_results, violations
             )
-            consistency_warnings = [v.detail for v in violations]
+            consistency_warnings.extend(v.detail for v in violations)
         else:
             consistency_capped = False
-            consistency_warnings = []
 
         result = _build_result(
             test_results=test_results,
@@ -307,20 +317,25 @@ async def run_selected(
         )
         test_results = _merge_cached(reused_results, test_results)
 
+        consistency_warnings = []
         try:
             violations = await CrossHookValidator().run(provider, config, fixture)
-        except Exception:
+        except Exception as exc:
             _logger.exception("CrossHookValidator failed; skipping consistency checks")
             violations = []
+            consistency_warnings.append(
+                "Cross-hook consistency verification incomplete: "
+                f"{type(exc).__name__}. Completed inspection scores are retained; "
+                "the unavailable check does not establish consistency."
+            )
 
         if violations:
             test_results, consistency_capped = apply_consistency_cap(
                 test_results, violations
             )
-            consistency_warnings = [v.detail for v in violations]
+            consistency_warnings.extend(v.detail for v in violations)
         else:
             consistency_capped = False
-            consistency_warnings = []
 
         result = _build_result(
             test_results=test_results,
