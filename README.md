@@ -271,6 +271,12 @@ judges:
 `ifixai setup` also records `fixture`, `mode`, and `eval_mode` (trimmed here for brevity).
 Keep `ifixai.yaml` out of version control; it is git-ignored by default.
 
+When `--provider` changes the saved provider, its saved model, endpoint, key
+env-var name, authentication method and extra headers are skipped. Supply any
+connection overrides for the new provider explicitly. Other run defaults and
+the saved judge panel still apply. A config without `provider` keeps generic
+connection defaults.
+
 ## What you get back
 
 A letter grade with the breakdown behind it. iFixAi groups the 60 inspections into **25 categories**, five core pillars plus twenty premium. The five core pillars:

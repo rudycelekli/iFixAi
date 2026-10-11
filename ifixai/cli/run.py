@@ -834,7 +834,15 @@ def run(
         from click.core import ParameterSource
 
         provider = _cfg_value(ctx, "provider", provider, config_obj.provider)
-        model = _cfg_value(ctx, "model", model, config_obj.model)
+        # Connection defaults belong to the saved target. An explicit switch
+        # must use the new provider's model, endpoint and credential defaults.
+        # Configurations without a provider retain their generic defaults.
+        same_target_provider = (
+            not config_obj.provider
+            or config_obj.provider.lower() == (provider or "").lower()
+        )
+        if same_target_provider:
+            model = _cfg_value(ctx, "model", model, config_obj.model)
         fixture = _cfg_value(ctx, "fixture", fixture, config_obj.fixture)
         explicit_selector = (
             strategic
@@ -851,17 +859,18 @@ def run(
             ctx, "report_format", report_format, config_obj.format
         )
         timeout = _cfg_value(ctx, "timeout", timeout, config_obj.timeout)
-        endpoint = _cfg_value(ctx, "endpoint", endpoint, config_obj.endpoint)
-        auth_method = _cfg_value(
-            ctx, "auth_method", auth_method, config_obj.auth_method
-        )
+        if same_target_provider:
+            endpoint = _cfg_value(ctx, "endpoint", endpoint, config_obj.endpoint)
+            auth_method = _cfg_value(
+                ctx, "auth_method", auth_method, config_obj.auth_method
+            )
         grounding = _cfg_value(ctx, "grounding", grounding, config_obj.grounding)
         if governance_path is None and config_obj.governance:
             governance_path = config_obj.governance
-        if extra_headers is None and config_obj.extra_headers:
+        if same_target_provider and extra_headers is None and config_obj.extra_headers:
             extra_headers = config_obj.extra_headers
         system_name = _cfg_value(ctx, "system_name", system_name, config_obj.name)
-        if api_key is None and config_obj.api_key_env:
+        if same_target_provider and api_key is None and config_obj.api_key_env:
             api_key = os.environ.get(config_obj.api_key_env)
         if config_obj.judges and (
             ctx.get_parameter_source("judge_provider") == ParameterSource.DEFAULT
