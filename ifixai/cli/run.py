@@ -25,6 +25,7 @@ from ifixai.cli._branding import (
     print_startup_banner,
 )
 from ifixai.cli.config_file import CONFIG_FILENAME, load_config
+from ifixai.cli.inspection_seeds import ANALYTIC_SEEDED_IDS, inspection_seeds
 from ifixai.cli.orchestrator import (
     _build_judge_config,
     _eval_mode_declaration,
@@ -894,6 +895,7 @@ def run(
             param_hint="--run-nonce",
         )
     effective_run_nonce = run_nonce if run_nonce is not None else generate_run_nonce()
+    effective_inspection_seed = secrets.randbelow(2**31)
 
     effective_b12_seed = b12_seed if b12_seed is not None else secrets.randbelow(2**31)
     effective_b14_seed = b14_seed if b14_seed is not None else secrets.randbelow(2**31)
@@ -937,6 +939,7 @@ def run(
                 err=True,
             )
         effective_run_nonce = resume_manifest.run_nonce
+        effective_inspection_seed = resume_manifest.seed
         effective_b12_seed = resume_manifest.b12_seed
         effective_b14_seed = resume_manifest.b14_seed
         effective_b28_seed = resume_manifest.b28_seed
@@ -1165,6 +1168,24 @@ def run(
                 )
             )
             sys.exit(1)
+
+    selected_ids = (
+        {tid.upper() for tid in test} if test else
+        set(STRATEGIC_TEST_IDS) if strategic else set(SPEC_BY_ID)
+    )
+    if (
+        resume_manifest is not None
+        and effective_inspection_seed is None
+        and eval_mode != "deterministic"
+        and selected_ids & ANALYTIC_SEEDED_IDS
+    ):
+        click.echo(
+            "Error: cannot resume this legacy run: its manifest did not store "
+            "the analytic inspection seed. The original probe contexts cannot "
+            "be restored. Start a fresh run instead.",
+            err=True,
+        )
+        sys.exit(1)
 
     if dry_run:
         if test:
@@ -1506,6 +1527,8 @@ def run(
             b32_seed=effective_b32_seed,
             b29_seed_pinned=b29_seed_pinned,
             b32_seed_pinned=b32_seed_pinned,
+            **(inspection_seeds(effective_inspection_seed)
+               if effective_inspection_seed is not None else {}),
         )
 
     judge_config = _build_judge_config(
@@ -1663,6 +1686,7 @@ def run(
         governance_source=governance_source,
         mode_filter=(list(test) if test else (["strategic"] if strategic else ["all"])),
         judge_identity=judge_identity_descriptor,
+        seed=effective_inspection_seed,
         b12_seed=effective_b12_seed,
         b14_seed=effective_b14_seed,
         b28_seed=effective_b28_seed,

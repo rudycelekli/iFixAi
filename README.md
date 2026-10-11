@@ -230,6 +230,13 @@ needs a hand-built fixture: **[docs/fixture_authoring.md](docs/fixture_authoring
 
 Four themes (`security`, `reliability`, `compliance`, `frontier`) also work as `--suite` values; run `ifixai list suites` to browse them all.
 
+Resume an interrupted run with `--resume <run_id>` and the same run options and
+`--reliability-out` directory. Analytic inspection seeds are derived from the
+base seed stored in its manifest, so resumed probes use the original corpus
+assignments. Older manifests without that base seed can still resume B-only
+runs; analytic runs selecting seeded non-B inspections must start a fresh run
+because their original probe contexts cannot be reconstructed.
+
 ```bash
 ifixai run --provider http --endpoint <agent-url> --grounding sut  # your real deployed agent (recommended)
 ifixai run --provider openai --suite strategic   # quick bare-model read (8 tests)
