@@ -271,7 +271,7 @@ def test_the_grading_vendor_is_the_model_s_author(model: str, vendor: str) -> No
         ("openai", "gpt-4o", "openai"),
         ("azure", "my-deployment", "openai"),
         ("gemini", "gemini-2.0-flash", "google"),
-        ("huggingface", "meta-llama/Llama-3.3-70B-Instruct", "huggingface"),
+        ("huggingface", "meta-llama/Llama-3.3-70B-Instruct", "meta"),
         ("http", None, "http"),
         ("openrouter", None, "openrouter"),
     ],

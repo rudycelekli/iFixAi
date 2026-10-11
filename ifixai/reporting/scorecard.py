@@ -288,7 +288,7 @@ def b32_not_applicable_warning(
 # Requesty, Cloudflare AI Gateway or Vercel AI Gateway) is recognized as
 # independent instead of mislabeled "self-judge".
 _AGGREGATOR_PROVIDERS: Final[frozenset[str]] = frozenset(
-    {"openrouter", "orcarouter", "requesty", "cloudflare", "vercel", "atlascloud", "litellm", "http", "langchain"}
+    {"openrouter", "orcarouter", "requesty", "cloudflare", "vercel", "atlascloud", "litellm", "http", "langchain", "huggingface"}
 )
 
 # Namespaces that sit in front of the author, as in the Workers AI ids
@@ -334,7 +334,23 @@ _MODEL_FAMILY_VENDORS: Final[dict[str, str]] = {
 
 def grading_vendor(provider: str, model: str | None) -> str:
     p = (provider or "").lower()
-    if p in _AGGREGATOR_PROVIDERS and model and "/" in model:
+    if p == "bedrock" and model:
+        # Native foundation-model IDs declare the creator before a dot, with
+        # an optional cross-region prefix. Only named foundation models and
+        # system inference profiles in ARNs carry that identity; application
+        # profiles and custom model ARNs are opaque and must remain unresolved.
+        identifier = model.lower()
+        if identifier.startswith("arn:"):
+            resource = identifier.split(":", 5)[-1]
+            if resource.startswith(("foundation-model/", "inference-profile/")):
+                identifier = resource.partition("/")[2]
+            else:
+                identifier = ""
+        parts = identifier.split(".")
+        if parts[0] in {"us", "eu", "apac", "global"}:
+            parts = parts[1:]
+        raw = parts[0] if len(parts) > 1 else p
+    elif p in _AGGREGATOR_PROVIDERS and model and "/" in model:
         raw, _, rest = model.lower().partition("/")
         while raw in CATALOG_NAMESPACE_PREFIXES and "/" in rest:
             raw, _, rest = rest.partition("/")
