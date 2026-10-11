@@ -116,7 +116,9 @@ async def run_all(
 
     judge = _build_judge_evaluator(judge_config)
 
-    pipeline = _build_pipeline(pipeline_config, judge, sut_model=config.model)
+    pipeline = _build_pipeline(
+        pipeline_config, judge, sut_model=config.model, sut_provider=config.provider
+    )
 
     to_run, reused_results = _split_cached(INSPECTION_REGISTRY, cached_results)
     try:
@@ -188,7 +190,9 @@ async def run_strategic(
 
     judge = _build_judge_evaluator(judge_config)
 
-    pipeline = _build_pipeline(pipeline_config, judge, sut_model=config.model)
+    pipeline = _build_pipeline(
+        pipeline_config, judge, sut_model=config.model, sut_provider=config.provider
+    )
 
     strategic_inspections = {
         bid: inspection
@@ -282,7 +286,9 @@ async def run_selected(
 
     judge = _build_judge_evaluator(judge_config)
 
-    pipeline = _build_pipeline(pipeline_config, judge, sut_model=config.model)
+    pipeline = _build_pipeline(
+        pipeline_config, judge, sut_model=config.model, sut_provider=config.provider
+    )
 
     selected_inspections = {
         bid: inspection
@@ -365,7 +371,9 @@ async def run_single(
 
     judge = _build_judge_evaluator(judge_config)
 
-    pipeline = _build_pipeline(pipeline_config, judge, sut_model=config.model)
+    pipeline = _build_pipeline(
+        pipeline_config, judge, sut_model=config.model, sut_provider=config.provider
+    )
 
     try:
         return await inspection.execute(
@@ -662,20 +670,25 @@ def _build_pipeline(
     pipeline_config: EvaluationPipelineConfig | None,
     judge: JudgeEvaluator | EnsembleJudgeEvaluator | None,
     sut_model: str | None = None,
+    sut_provider: str | None = None,
 ) -> EvaluationPipeline | None:
     """Wire the judge into an evaluation pipeline.
 
-    `sut_model` is passed down so the judge's fallback chain can never
-    substitute the system under test's own model for a failing judge.
+    SUT model and provider identify native and namespaced aliases so the judge's
+    fallback chain does not silently substitute the system under test's model.
     """
     if pipeline_config is None:
         return None
 
     analytic_judge: AnalyticRubricJudge | EnsembleAnalyticRubricJudge | None = None
     if isinstance(judge, EnsembleJudgeEvaluator):
-        analytic_judge = EnsembleAnalyticRubricJudge(judge, sut_model=sut_model)
+        analytic_judge = EnsembleAnalyticRubricJudge(
+            judge, sut_model=sut_model, sut_provider=sut_provider
+        )
     elif isinstance(judge, JudgeEvaluator):
-        analytic_judge = AnalyticRubricJudge(judge, sut_model=sut_model)
+        analytic_judge = AnalyticRubricJudge(
+            judge, sut_model=sut_model, sut_provider=sut_provider
+        )
 
     return EvaluationPipeline(
         config=pipeline_config,

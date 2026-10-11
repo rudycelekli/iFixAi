@@ -91,11 +91,34 @@ def load_fallback_policy(path: Path | None = None) -> JudgeFallbackPolicy:
         raise JudgeFallbackConfigError(resolved, f"has invalid fields\n{exc}") from exc
 
 
+_NATIVE_MODEL_VENDORS = {
+    "openai": "openai",
+    "anthropic": "anthropic",
+    "gemini": "google",
+}
+
+
+def _model_identity(provider: str | None, model: str | None) -> tuple[str, str] | None:
+    """Match native IDs to explicit OpenRouter namespaces, never custom deployments."""
+    if provider is None or model is None:
+        return None
+    provider = provider.strip().lower()
+    vendor = _NATIVE_MODEL_VENDORS.get(provider)
+    if vendor is not None:
+        return vendor, model
+    if provider == "openrouter":
+        vendor, separator, name = model.partition("/")
+        if separator and name and vendor in _NATIVE_MODEL_VENDORS.values():
+            return vendor, name
+    return None
+
+
 def resolve_judge_model_chain(
     provider: str,
     primary_model: str | None,
     policy: JudgeFallbackPolicy | None = None,
     excluded_model: str | None = None,
+    excluded_provider: str | None = None,
 ) -> list[str | None]:
     """Ordered judge models to try: the configured one, then its declared fallbacks.
 
@@ -107,13 +130,19 @@ def resolve_judge_model_chain(
     SUT's own model would quietly turn a cross-provider grade into self-judging
     while the run manifest still claims an independent judge — the exact thing
     ``build_manifest`` refuses to record — so it is dropped from the chain. The
-    configured judge model is never dropped: an operator who points the judge at
+    ``excluded_provider`` additionally matches native OpenAI/Anthropic/Gemini
+    IDs to OpenRouter's explicit vendor namespace. Unknown providers and custom
+    deployment names are not inferred. The configured judge model is never dropped: an operator who points the judge at
     the SUT has chosen ``--eval-mode self``, which is declared, not silent.
     """
+    excluded_identity = _model_identity(excluded_provider, excluded_model)
     chain = (policy or load_fallback_policy()).chain_for(provider)
     ordered: list[str | None] = [primary_model]
     seen: set[str | None] = {primary_model, excluded_model}
     for candidate in chain.models:
+        candidate_identity = _model_identity(provider, candidate.model)
+        if excluded_identity is not None and candidate_identity == excluded_identity:
+            continue
         if candidate.model not in seen:
             ordered.append(candidate.model)
             seen.add(candidate.model)

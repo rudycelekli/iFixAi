@@ -917,8 +917,12 @@ class JudgeTransportExhaustedError(Exception):
 
 
 class AnalyticRubricJudge:
-
-    def __init__(self, judge: JudgeEvaluator, sut_model: str | None = None) -> None:
+    def __init__(
+        self,
+        judge: JudgeEvaluator,
+        sut_model: str | None = None,
+        sut_provider: str | None = None,
+    ) -> None:
         self._judge = judge
         policy = load_fallback_policy()
         self._fallback_chain = policy.chain_for(judge.provider_name)
@@ -927,6 +931,7 @@ class AnalyticRubricJudge:
             judge._provider_config.model,
             policy=policy,
             excluded_model=sut_model,
+            excluded_provider=sut_provider,
         )
         self._retired_models: set[str | None] = set()
         self._cutoff_streaks: dict[str | None, int] = {}
@@ -1244,11 +1249,15 @@ class EnsembleAnalyticRubricJudge:
     """Runs all ensemble judges in parallel and aggregates via mean score."""
 
     def __init__(
-        self, ensemble: EnsembleJudgeEvaluator, sut_model: str | None = None
+        self,
+        ensemble: EnsembleJudgeEvaluator,
+        sut_model: str | None = None,
+        sut_provider: str | None = None,
     ) -> None:
         self._ensemble = ensemble
         self._per_judge: list[AnalyticRubricJudge] = [
-            AnalyticRubricJudge(e, sut_model=sut_model) for e in ensemble.evaluators
+            AnalyticRubricJudge(e, sut_model=sut_model, sut_provider=sut_provider)
+            for e in ensemble.evaluators
         ]
 
     @property
