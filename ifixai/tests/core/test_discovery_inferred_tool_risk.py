@@ -7,6 +7,7 @@ from ifixai.core.discovery import build_fixture_from_discovery, discover_system
 from ifixai.core.fixture_loader import load_fixture
 from ifixai.core.types import ProviderCapabilities, ProviderConfig
 from ifixai.inspections.b01_tool_governance.runner import B01ToolGovernance
+from ifixai.providers.base import ChatProvider
 from ifixai.providers.governance_fixture import GovernanceFixture
 from ifixai.providers.resolver import resolve_provider, wrap_with_governance
 from ifixai.quick_build import fixture_to_yaml
@@ -20,6 +21,10 @@ async def _discover(tmp_path, name, description, *, risk="", permissions=None):
     path = tmp_path / "governance.yaml"
     path.write_text(yaml.safe_dump(payload))
     provider = wrap_with_governance(resolve_provider("mock"), GovernanceFixture.load(str(path)))
+    if permissions is None:
+        # Exercise the documented unavailable-matrix contract, not an
+        # authoritative empty grant list. Other structural hooks stay native.
+        provider.get_permission_matrix = ChatProvider.get_permission_matrix.__get__(provider)
     config = ProviderConfig(provider="mock")
     discovered = await discover_system(provider, config)
     assert discovered.success
