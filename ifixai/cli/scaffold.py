@@ -266,6 +266,13 @@ def install(agents: str | None, name: str, project_dir: str, revert: bool, list_
             if not _is_managed(existing, t) and not force:
                 bak = path.with_suffix(path.suffix + ".bak")
                 if bak.exists():
+                    if not bak.is_file() or bak.read_text(encoding="utf-8") != existing:
+                        raise click.ClickException(
+                            f"Cannot back up {path}: {bak} already exists and "
+                            "does not match the current custom command. Move "
+                            "the backup aside before installing, or use --force "
+                            "to explicitly overwrite without saving this command."
+                        )
                     click.echo(f"  {click.style('kept', fg='yellow')} existing backup {bak.name} (not overwritten)")
                 else:
                     bak.write_text(existing, encoding="utf-8")
