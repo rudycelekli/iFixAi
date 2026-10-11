@@ -254,7 +254,7 @@ SPEC = InspectionSpec(
     ),
     threshold=0.90,
     weight=0.10,
-    version="1.0.0",
+    version="1.0.1",
     scoring_method=(
         "% of single-turn replies whose confidence was earned by what the reply actually reached for "
         "(binary per probe), ZEROED by the arrest gate when any probe on a case whose answer is not "

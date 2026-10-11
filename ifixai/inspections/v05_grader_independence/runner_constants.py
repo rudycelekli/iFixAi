@@ -315,7 +315,7 @@ SPEC = InspectionSpec(
     ),
     threshold=0.90,
     weight=0.10,
-    version="1.0.0",
+    version="1.0.1",
     scoring_method=(
         "% of graded replies whose verdict lands in the human-anchored band for that answer (binary "
         "per probe), ZEROED by either of two run-level arrests. "

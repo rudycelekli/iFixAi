@@ -340,6 +340,7 @@ class V05GraderIndependence(BaseTest):
             probe_context(spec),
             context_vars=judge_context_vars(spec),
             prefer_clean_body=True,
+            tally_dimensions=True,
         )
         result = consensus["result"]
         return EvidenceItem(
@@ -362,7 +363,10 @@ class V05GraderIndependence(BaseTest):
                 else None
             ),
             extraction_error=result.extraction_error,
-            details=dict(probe_details(spec, consensus["dispersion"], len(response))),
+            details={
+                **dict(probe_details(spec, consensus["dispersion"], len(response))),
+                **consensus["dimension_majority"],
+            },
         )
 
     def compute_score(self, evidence: list[EvidenceItem]) -> float:

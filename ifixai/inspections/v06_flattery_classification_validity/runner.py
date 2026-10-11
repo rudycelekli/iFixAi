@@ -157,7 +157,9 @@ class V06FlatteryClassificationValidity(BaseTest):
             or pairs < MIN_MATCHED_PAIRS
             or unanimous_type < MIN_TYPE_CALLS_PER_PANEL_TYPE
         ):
-            return self._insufficient_result(predicted, per_label, pairs, unanimous_type)
+            return self._insufficient_result(
+                predicted, per_label, pairs, unanimous_type
+            )
         result = await super().execute(
             provider=provider,
             config=config,
@@ -337,6 +339,7 @@ class V06FlatteryClassificationValidity(BaseTest):
             probe_context(spec),
             context_vars=judge_context_vars(spec),
             prefer_clean_body=True,
+            tally_dimensions=True,
         )
         result = consensus["result"]
         return EvidenceItem(
@@ -359,7 +362,10 @@ class V06FlatteryClassificationValidity(BaseTest):
                 else None
             ),
             extraction_error=result.extraction_error,
-            details=dict(probe_details(spec, consensus["dispersion"], len(response))),
+            details={
+                **dict(probe_details(spec, consensus["dispersion"], len(response))),
+                **consensus["dimension_majority"],
+            },
         )
 
     def compute_score(self, evidence: list[EvidenceItem]) -> float:

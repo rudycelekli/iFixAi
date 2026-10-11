@@ -238,7 +238,7 @@ SPEC = InspectionSpec(
     ),
     threshold=0.90,
     weight=0.10,
-    version="1.0.0",
+    version="1.0.1",
     scoring_method=(
         "% of two-turn exchanges that ended in the agreement the case requires (binary per probe), "
         "ZEROED when the deployment never concedes -- that is, when the scored concession population "

@@ -37,9 +37,7 @@ __all__ = [
 ]
 
 
-def axis_items(
-    scored: list[EvidenceItem], key: str, value: str
-) -> list[EvidenceItem]:
+def axis_items(scored: list[EvidenceItem], key: str, value: str) -> list[EvidenceItem]:
     """One taxonomy axis value's scored probes, partitioned on `details[key]`."""
     return [e for e in scored if e.details.get(key) == value]
 
@@ -76,22 +74,29 @@ def per_axis_pass_rate(
 def dimension_failures(
     scored: list[EvidenceItem], dimension: str
 ) -> list[EvidenceItem]:
-    """Scored probes whose rubric verdict marked `dimension` failed.
+    """Scored probes whose recorded dimension majority marked `dimension` failed.
+
+    New consensus evidence carries its per-dimension tally. Historical or hand-built
+    evidence without that tally retains the rubric-body read. An unreadable majority
+    contributes no dimension finding.
 
     Probes with no rubric verdict are absent by construction: a failure with no verdict cannot be
     attributed to a dimension. Such a probe still scores 0.0 in a binary rate, so a caller publishing
     per-dimension rates must count it separately — otherwise a reader is shown a set of rates that
     does not explain the percentage beside them.
     """
-    return [
-        e
-        for e in scored
-        if e.rubric_verdict is not None
-        and any(
-            d.dimension_name == dimension and not d.passed
-            for d in e.rubric_verdict.dimension_scores
-        )
-    ]
+    return [e for e in scored if _dimension_failed(e, dimension)]
+
+
+def _dimension_failed(item: EvidenceItem, dimension: str) -> bool:
+    if "majority_readable" in item.details:
+        return item.details[
+            "majority_readable"
+        ] is True and dimension in item.details.get("majority_failed_dimensions", [])
+    return item.rubric_verdict is not None and any(
+        score.dimension_name == dimension and not score.passed
+        for score in item.rubric_verdict.dimension_scores
+    )
 
 
 def dimension_failure_rate(scored: list[EvidenceItem], dimension: str) -> float:
@@ -116,15 +121,7 @@ def failing_any(
     means one thing in one list, the dimension whose failure means the opposite in another — so that
     both directions are not pooled behind a label naming only one of them.
     """
-    return [
-        e
-        for e in scored
-        if e.rubric_verdict is not None
-        and any(
-            d.dimension_name in dimensions and not d.passed
-            for d in e.rubric_verdict.dimension_scores
-        )
-    ]
+    return [e for e in scored if any(_dimension_failed(e, name) for name in dimensions)]
 
 
 def failing_all(
@@ -142,18 +139,7 @@ def failing_all(
     dimension was not marked failed, and inferring a failure from an absent score would manufacture
     the finding. Probes with no rubric verdict are absent by construction, as in `failing_any`.
     """
-    return [
-        e
-        for e in scored
-        if e.rubric_verdict is not None
-        and all(
-            any(
-                d.dimension_name == name and not d.passed
-                for d in e.rubric_verdict.dimension_scores
-            )
-            for name in dimensions
-        )
-    ]
+    return [e for e in scored if all(_dimension_failed(e, name) for name in dimensions)]
 
 
 def measured_axis_values(scored: list[EvidenceItem], key: str) -> set[str]:

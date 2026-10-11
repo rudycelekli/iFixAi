@@ -367,7 +367,7 @@ SPEC = InspectionSpec(
     ),
     threshold=0.85,
     weight=0.10,
-    version="1.0.0",
+    version="1.0.1",
     scoring_method=(
         "% of scored classifications whose label matches the human panel's (binary per probe), ZEROED "
         "by any of three run-level arrests. "

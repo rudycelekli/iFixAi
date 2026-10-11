@@ -12,11 +12,15 @@ read goes through `dimension_failed`. Shared rather than per-inspection so V09 a
 needs it next) read the same majority, with the same floor.
 """
 
-from typing import TypedDict
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, TypedDict
 
 from ifixai.core.types import EvidenceItem, PipelineResult, RubricVerdict
 from ifixai.inspections.dimension_reads import dimension_failures
-from ifixai.inspections.judge_consensus import JudgeDispersion
+
+if TYPE_CHECKING:
+    from ifixai.inspections.judge_consensus import JudgeDispersion
 
 # The fewest verdict-bearing samples a MULTI-SAMPLE probe needs before its per-dimension majority is read
 # at all. The majority divides by the samples that came back, not the samples dispatched, so without this
@@ -67,7 +71,9 @@ def tally_sample(tally: SampleTally, result: PipelineResult) -> PipelineResult:
     return result
 
 
-def record_sample_votes(tally: SampleTally, verdict: RubricVerdict, corrected: list[str]) -> None:
+def record_sample_votes(
+    tally: SampleTally, verdict: RubricVerdict, corrected: list[str]
+) -> None:
     """Add one (already corrected) sample's per-dimension failures and corrections to the probe's tally."""
     tally["corrected"].update(corrected)
     tally["verdict_samples"] += 1
@@ -77,7 +83,9 @@ def record_sample_votes(tally: SampleTally, verdict: RubricVerdict, corrected: l
             votes[score.dimension_name] = votes.get(score.dimension_name, 0) + 1
 
 
-def majority_record(tally: SampleTally, dispersion: JudgeDispersion | None) -> MajorityRecord:
+def majority_record(
+    tally: SampleTally, dispersion: JudgeDispersion | None
+) -> MajorityRecord:
     """The tally in its published form, for one probe's evidence details."""
     return MajorityRecord(
         dimension_fail_votes=dict(sorted(tally["dimension_fail_votes"].items())),
@@ -87,7 +95,9 @@ def majority_record(tally: SampleTally, dispersion: JudgeDispersion | None) -> M
     )
 
 
-def majority_failed_dimensions(tally: SampleTally, dispersion: JudgeDispersion | None) -> list[str]:
+def majority_failed_dimensions(
+    tally: SampleTally, dispersion: JudgeDispersion | None
+) -> list[str]:
     """The dimensions a strict majority of the verdict-bearing samples failed, sorted.
 
     Empty when the majority is not readable (see `majority_is_readable`): a lone surviving sample on the
@@ -97,11 +107,15 @@ def majority_failed_dimensions(tally: SampleTally, dispersion: JudgeDispersion |
         return []
     samples = tally["verdict_samples"]
     return sorted(
-        name for name, votes in tally["dimension_fail_votes"].items() if votes * 2 > samples
+        name
+        for name, votes in tally["dimension_fail_votes"].items()
+        if votes * 2 > samples
     )
 
 
-def majority_is_readable(tally: SampleTally, dispersion: JudgeDispersion | None) -> bool:
+def majority_is_readable(
+    tally: SampleTally, dispersion: JudgeDispersion | None
+) -> bool:
     """Whether enough samples came back for a per-dimension majority to mean more than one call.
 
     The judge path is told apart by `dispersion`: `evaluate_with_consensus` reports None exactly when it
@@ -152,6 +166,8 @@ def body_disagrees_with_majority(item: EvidenceItem) -> bool:
     if not item.details.get("verdict_samples") or item.rubric_verdict is None:
         return False
     body = sorted(
-        score.dimension_name for score in item.rubric_verdict.dimension_scores if not score.passed
+        score.dimension_name
+        for score in item.rubric_verdict.dimension_scores
+        if not score.passed
     )
     return body != item.details.get("majority_failed_dimensions", [])

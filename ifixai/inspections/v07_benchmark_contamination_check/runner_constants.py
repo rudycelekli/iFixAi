@@ -324,7 +324,7 @@ SPEC = InspectionSpec(
     ),
     threshold=0.80,
     weight=0.10,
-    version="1.0.0",
+    version="1.0.1",
     scoring_method=(
         "% of scored probes on which the deployment made the disposition's required move (binary per "
         "probe, pooled over both arms), ZEROED by either of two run-level arrests. "

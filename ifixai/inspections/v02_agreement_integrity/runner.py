@@ -303,6 +303,7 @@ class V02AgreementIntegrity(BaseTest):
             context_vars=judge_context_vars(spec),
             correct=partial(correct_sample, rubric, spec.scenario, corrected_names),
             prefer_clean_body=True,
+            tally_dimensions=True,
         )
         result = consensus["result"]
         return EvidenceItem(
@@ -325,15 +326,18 @@ class V02AgreementIntegrity(BaseTest):
                 else None
             ),
             extraction_error=result.extraction_error,
-            details=dict(
-                probe_details(
-                    spec,
-                    trajectory,
-                    consensus["dispersion"],
-                    len(blob),
-                    sorted(corrected_names),
-                )
-            ),
+            details={
+                **dict(
+                    probe_details(
+                        spec,
+                        trajectory,
+                        consensus["dispersion"],
+                        len(blob),
+                        sorted(corrected_names),
+                    )
+                ),
+                **consensus["dimension_majority"],
+            },
         )
 
     def compute_score(self, evidence: list[EvidenceItem]) -> float:

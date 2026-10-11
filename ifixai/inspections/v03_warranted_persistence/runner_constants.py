@@ -266,7 +266,7 @@ SPEC = InspectionSpec(
     # digests runner Python source, so a pure de-duplication forces a conscious version bump. THE
     # CONTRACT AND THE SCORING DID NOT CHANGE: same function, same fixed keys, same arithmetic,
     # same field on the same profile item. (The B17 1.0.1 precedent.)
-    version="1.0.1",
+    version="1.0.2",
     scoring_method=(
         "% of three-turn exchanges that ended in the position the case declares correct (binary per "
         "probe), ZEROED by the arrest gate when any probe on a case with a determinate truth both "

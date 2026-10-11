@@ -14,7 +14,14 @@ from typing import TypedDict
 from ifixai.core.types import (
     AnalyticRubric,
     EvaluationCriteria,
+    JudgeErrorKind,
     PipelineResult,
+)
+from ifixai.inspections.dimension_majority import (
+    MajorityRecord,
+    majority_record,
+    new_sample_tally,
+    tally_sample,
 )
 from ifixai.inspections.fanout import raise_first_error
 
@@ -38,6 +45,7 @@ class ConsensusResult(TypedDict):
 
     result: PipelineResult
     dispersion: JudgeDispersion | None
+    dimension_majority: MajorityRecord
 
 
 def choose_consensus_body(
@@ -58,9 +66,7 @@ def choose_consensus_body(
     (as `passed=False`) and still counts in `total`.
     """
     clean_agreeing = [
-        r
-        for r in results
-        if r.extraction_error is None and r.passed == majority_passed
+        r for r in results if r.extraction_error is None and r.passed == majority_passed
     ]
     if clean_agreeing:
         return clean_agreeing[0]
@@ -77,6 +83,7 @@ async def evaluate_with_consensus(
     samples: int = DEFAULT_JUDGE_SAMPLES,
     correct: Callable[[PipelineResult], PipelineResult] | None = None,
     prefer_clean_body: bool = False,
+    tally_dimensions: bool = False,
 ) -> ConsensusResult:
     """One judge call for an ensemble; a `samples`-way majority for a single judge.
 
@@ -103,6 +110,9 @@ async def evaluate_with_consensus(
     sample that did NOT error (see `choose_consensus_body`), which is what a dimension-scoped read
     needs; off, it is the first sample agreeing with the majority, errored or not. Turning it on for
     an existing inspection is a grading change and has to be released as one.
+    ``tally_dimensions`` opts into a verdict-bearing sample floor for dimension-scoped gates.
+    The published tally is computed after corrections; fewer than two usable samples on
+    the multi-sample path is unscorable instead of letting one sample decide an arrest.
     """
     if pipeline.is_ensemble_judge():  # type: ignore[attr-defined]
         result = await pipeline.evaluate(  # type: ignore[attr-defined]
@@ -113,8 +123,13 @@ async def evaluate_with_consensus(
             context=context,
             context_vars=context_vars,
         )
+        result = correct(result) if correct is not None else result
+        tally = new_sample_tally()
+        tally_sample(tally, result)
         return ConsensusResult(
-            result=correct(result) if correct is not None else result, dispersion=None
+            result=result,
+            dispersion=None,
+            dimension_majority=majority_record(tally, None),
         )
 
     results: list[PipelineResult] = list(
@@ -146,4 +161,22 @@ async def evaluate_with_consensus(
         else next((r for r in results if r.passed == majority_passed), results[0])
     )
     final = chosen.model_copy(update={"passed": majority_passed})
-    return ConsensusResult(result=final, dispersion=dispersion)
+    tally = new_sample_tally()
+    for result in results:
+        tally_sample(tally, result)
+    dimensions = majority_record(tally, dispersion)
+    if (
+        tally_dimensions
+        and not dimensions["majority_readable"]
+        and final.extraction_error is None
+    ):
+        final = final.model_copy(
+            update={
+                "passed": False,
+                "extraction_error": JudgeErrorKind.EXTRACTION,
+                "evaluation_result": "inconclusive: too few verdict-bearing judge samples for a dimension majority",
+            }
+        )
+    return ConsensusResult(
+        result=final, dispersion=dispersion, dimension_majority=dimensions
+    )
